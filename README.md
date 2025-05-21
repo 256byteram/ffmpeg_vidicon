@@ -1,3 +1,43 @@
+FFmpeg with additional vidicon filter
+=====================================
+
+This is a fork of the git.ffmpeg.org release/6.1 repository.
+
+I have added an additional filter which attempts to simulate a colour vidicon camera.
+
+## Compile
+
+My development system is Linux. Windows and Mac is documented elsewhere.
+
+In the repository folder:
+
+`./configure --enable-filter=vidicon --enable-libx264 --enable-gpl`
+`make -j8`
+
+Eventually, assuming everything works, you'll have an `ffmpeg` binary available.
+
+## Usage
+
+`/path/to/ffmpeg -i input.mp4 -crf 18 -vf "vidicon" -pix_fmt yuv420p output.mp4
+
+the `"vidicon"` paramater has options to change the gain and fade time:
+
+* `fade` is a number from 0.0 to 1.0, where 1.0 gives the longest fade time.
+* `gain` is a number from 0.0 to 1.0, which adjusts how much input gain there is. Background noise can accumulate if the gain is too high.
+
+Additionally, each option can be adjusted per channel:
+
+* `fade_r`, `fade_g` and `fade_b` for red, green and blue.
+* `gain_r`, `gain_g` and `gain_b`.
+
+For example:
+
+`"vidicon=gain=0.8:fade_r=0.5:fade_g=0.3:fade_b=0.6"`
+
+Will set the gain of all channels to 0.8 and the fade of the channels separately.
+
+The original FFmpeg README follows.
+
 FFmpeg README
 =============
 
