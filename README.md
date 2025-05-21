@@ -18,7 +18,7 @@ Eventually, assuming everything works, you'll have an `ffmpeg` binary available.
 
 ## Usage
 
-`/path/to/ffmpeg -i input.mp4 -crf 18 -vf "vidicon" -pix_fmt yuv420p output.mp4
+`/path/to/ffmpeg -i input.mp4 -crf 18 -vf "vidicon" -pix_fmt yuv420p output.mp4`
 
 the `"vidicon"` paramater has options to change the gain and fade time:
 
