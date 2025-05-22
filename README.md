@@ -12,6 +12,7 @@ My development system is Linux. Windows and Mac is documented elsewhere.
 In the repository folder:
 
 `./configure --enable-filter=vidicon --enable-libx264 --enable-gpl`
+
 `make -j8`
 
 Eventually, assuming everything works, you'll have an `ffmpeg` binary available.
