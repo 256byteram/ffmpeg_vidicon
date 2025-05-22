@@ -18,23 +18,34 @@ Eventually, assuming everything works, you'll have an `ffmpeg` binary available.
 
 ## Usage
 
+For best results, use 50 or 60 FPS video.
+
 `/path/to/ffmpeg -i input.mp4 -crf 18 -vf "vidicon" -pix_fmt yuv420p output.mp4`
 
-the `"vidicon"` paramater has options to change the gain and fade time:
+the `"vidicon"` parameter has options to change the gain and fade time:
 
-* `fade` is a number from 0.0 to 1.0, where 1.0 gives the longest fade time.
-* `gain` is a number from 0.0 to 1.0, which adjusts how much input gain there is. Background noise can accumulate if the gain is too high.
+* `fade` (default 0.5) is from 0.0 to 1.0, where 1.0 gives the longest fade time.
+* `gain` (default 1.0) is from 0.0 to 2.0, which adjusts how much input gain there is. Background noise can accumulate if the gain is too high.
+* `burn` (default 0.0) is from -1.0 to 1.0 which determines how easily the vidicon tubes are 'burned' - i.e. after being exposed to high brightness, how much that bright spot persists. A value of 0.05 will give a bright spot after exposure, mimicking a good tube. A value of -0.05 will show a dark spot, looking like a worn tube.
 
 Additionally, each option can be adjusted per channel:
 
 * `fade_r`, `fade_g` and `fade_b` for red, green and blue.
 * `gain_r`, `gain_g` and `gain_b`.
+* `burn_r`, `burn_g` and `burn_b`.
 
-For example:
+## Examples
 
-`"vidicon=gain=0.8:fade_r=0.5:fade_g=0.3:fade_b=0.6"`
+`"vidicon=gain=1.1:fade_r=0.6:fade_g=0.6:fade_b=0.7"`
+Will set the gain of all channels to 1.1 and the fade of the channels separately, giving slightly blue trails.
 
-Will set the gain of all channels to 0.8 and the fade of the channels separately.
+`"vidicon=gain=1.0:fade_r=0.6:fade_g=0.6:fade_b=0.7:burn_r=0.1:burn_g=0.3:burn_b=0.1"`
+Will give the same blue glow and green comet tails, mimicking a single tube Saticon camera.
+
+`"vidicon=gain=1.0:fade_r=0.6:fade_g=0.6:fade_b=0.7:burn_r=-0.1:burn_g=-0.2:burn_b=-0.1"`
+Reduces the gain of the burnt areas of the tube, mimicking a very worn out Saticon camera.
+
+The defaults give a neutral appearance.
 
 The original FFmpeg README follows.
 
