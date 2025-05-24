@@ -37,10 +37,12 @@ typedef struct {
     float fade_r, fade_g, fade_b;	// Fade options per channel
     float gain_r, gain_g, gain_b;	// Gain options per channel
     float burn_r, burn_g, burn_b;	// Burn level per channel
+    float tail_r, tail_g, tail_b;
     
-    float fade;		// Global fade option
-    float gain;		// Global gain option
-    float burn;		// Global burn option
+    float fade;		// Global fade rate
+    float gain;		// Global gain amount
+    float burn;		// Global burn sensitivity
+    float tail;		// Global tail rate
 
     int width;
     int height;
@@ -116,9 +118,14 @@ static int config_input(AVFilterLink *inlink) {
 	if (ctx->burn_g < -1.0f) ctx->burn_g = ctx->burn >= -1.0f ? ctx->burn : 0.0f;
 	if (ctx->burn_b < -1.0f) ctx->burn_b = ctx->burn >= -1.0f ? ctx->burn : 0.0f;
 
+	if (ctx->tail_r < 0) ctx->tail_r = ctx->tail >= 0 ? ctx->tail : 0.95f;
+	if (ctx->tail_g < 0) ctx->tail_g = ctx->tail >= 0 ? ctx->tail : 0.95f;
+	if (ctx->tail_b < 0) ctx->tail_b = ctx->tail >= 0 ? ctx->tail : 0.95f;
+
 	av_log(ctx, AV_LOG_INFO, "Fade R/G/B = %f / %f / %f\n", ctx->fade_r, ctx->fade_g, ctx->fade_b);
 	av_log(ctx, AV_LOG_INFO, "Gain R/G/B = %f / %f / %f\n", ctx->gain_r, ctx->gain_g, ctx->gain_b);
 	av_log(ctx, AV_LOG_INFO, "Burn R/G/B = %f / %f / %f\n", ctx->burn_r, ctx->burn_g, ctx->burn_b);
+	av_log(ctx, AV_LOG_INFO, "Tail R/G/B = %f / %f / %f\n", ctx->tail_r, ctx->tail_g, ctx->tail_b);
 
 	return 0;
 }
@@ -245,9 +252,9 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *frame) {
 	   
 	split_rgb24_to_planes (line, s->src_r, s->src_g, s->src_b, width);
 
-	process_color_plane_sse2(s->out_r, s->src_r, s->burn_acc_r[y], s->accum_r[y], width, s->fade_r, s->gain_r/2, 0.99, s->burn_r/10);
-	process_color_plane_sse2(s->out_g, s->src_g, s->burn_acc_g[y], s->accum_g[y], width, s->fade_g, s->gain_g/2, 0.99, s->burn_g/10);
-	process_color_plane_sse2(s->out_b, s->src_b, s->burn_acc_b[y], s->accum_b[y], width, s->fade_b, s->gain_b/2, 0.99, s->burn_b/10);
+	process_color_plane_sse2(s->out_r, s->src_r, s->burn_acc_r[y], s->accum_r[y], width, s->fade_r, s->gain_r/2, s->tail_r, s->burn_r/10);
+	process_color_plane_sse2(s->out_g, s->src_g, s->burn_acc_g[y], s->accum_g[y], width, s->fade_g, s->gain_g/2, s->tail_g, s->burn_g/10);
+	process_color_plane_sse2(s->out_b, s->src_b, s->burn_acc_b[y], s->accum_b[y], width, s->fade_b, s->gain_b/2, s->tail_b, s->burn_b/10);
 	merge_planes_to_rgb24(line, s->out_r, s->out_g, s->out_b, width);
 
     }
@@ -307,22 +314,28 @@ static const AVFilterPad vidicon_outputs[] = {
 
 static const AVOption vidicon_options[] = {
 	// Shared parameters
-	{ "fade", "Fade factor for all channels", OFFSET(fade), AV_OPT_TYPE_FLOAT, {.dbl = -1.0}, -1.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
+	{ "fade", "Fade ammount for all channels", OFFSET(fade), AV_OPT_TYPE_FLOAT, {.dbl = -1.0}, -1.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
 	{ "gain", "Gain factor for all channels", OFFSET(gain), AV_OPT_TYPE_FLOAT, {.dbl = -1.0}, -1.0, 2.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
-	{ "burn", "Burn factor for all channels", OFFSET(burn), AV_OPT_TYPE_FLOAT, {.dbl = -2.0}, -2.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
+	{ "burn", "Burn sensitivity for all channels", OFFSET(burn), AV_OPT_TYPE_FLOAT, {.dbl = -2.0}, -2.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
+	{ "tail", "Tail length for all channels", OFFSET(tail), AV_OPT_TYPE_FLOAT, {.dbl = -1.0}, -1.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
+	
 
 	// Per-channel overrides
-	{ "fade_r", "Fade factor for red channel", OFFSET(fade_r), AV_OPT_TYPE_FLOAT, {.dbl = -1.0}, -1.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
-	{ "fade_g", "Fade factor for green channel", OFFSET(fade_g), AV_OPT_TYPE_FLOAT, {.dbl = -1.0}, -1.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
-	{ "fade_b", "Fade factor for blue channel", OFFSET(fade_b), AV_OPT_TYPE_FLOAT, {.dbl = -1.0}, -1.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
+	{ "fade_r", "Fade ammount for red channel", OFFSET(fade_r), AV_OPT_TYPE_FLOAT, {.dbl = -1.0}, -1.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
+	{ "fade_g", "Fade ammount for green channel", OFFSET(fade_g), AV_OPT_TYPE_FLOAT, {.dbl = -1.0}, -1.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
+	{ "fade_b", "Fade ammount for blue channel", OFFSET(fade_b), AV_OPT_TYPE_FLOAT, {.dbl = -1.0}, -1.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
 
 	{ "gain_r", "Gain factor for red channel", OFFSET(gain_r), AV_OPT_TYPE_FLOAT, {.dbl = -1.0}, -1.0, 2.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
 	{ "gain_g", "Gain factor for green channel", OFFSET(gain_g), AV_OPT_TYPE_FLOAT, {.dbl = -1.0}, -1.0, 2.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
 	{ "gain_b", "Gain factor for blue channel", OFFSET(gain_b), AV_OPT_TYPE_FLOAT, {.dbl = -1.0}, -1.0, 2.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
 
-	{ "burn_r", "Burn factor for red channel", OFFSET(burn_r), AV_OPT_TYPE_FLOAT, {.dbl = -2.0}, -2.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
-	{ "burn_g", "Burn factor for green channel", OFFSET(burn_g), AV_OPT_TYPE_FLOAT, {.dbl = -2.0}, -2.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
-	{ "burn_b", "Burn factor for blue channel", OFFSET(burn_b), AV_OPT_TYPE_FLOAT, {.dbl = -2.0}, -2.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
+	{ "burn_r", "Burn sensitivity for red channel", OFFSET(burn_r), AV_OPT_TYPE_FLOAT, {.dbl = -2.0}, -2.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
+	{ "burn_g", "Burn sensitivity for green channel", OFFSET(burn_g), AV_OPT_TYPE_FLOAT, {.dbl = -2.0}, -2.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
+	{ "burn_b", "Burn sensitivity for blue channel", OFFSET(burn_b), AV_OPT_TYPE_FLOAT, {.dbl = -2.0}, -2.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
+
+	{ "tail_r", "Tail length for red channel", OFFSET(tail_r), AV_OPT_TYPE_FLOAT, {.dbl = -1.0}, -1.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
+	{ "tail_g", "Tail length for green channel", OFFSET(tail_g), AV_OPT_TYPE_FLOAT, {.dbl = -1.0}, -1.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
+	{ "tail_b", "Tail length for blue channel", OFFSET(tail_b), AV_OPT_TYPE_FLOAT, {.dbl = -1.0}, -1.0, 1.0, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM },
 
 	{ NULL }
 };

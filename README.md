@@ -25,15 +25,18 @@ For best results, use 50 or 60 FPS video.
 
 the `"vidicon"` parameter has options to change the gain and fade time:
 
-* `fade` (default 0.5) is from 0.0 to 1.0, where 1.0 gives the longest fade time.
+* `fade` (default 0.5) is from 0.0 to 1.0, where 1.0 gives the longest fade time. This is similar to the effect a bias lamp has on the vidicon.
 * `gain` (default 1.0) is from 0.0 to 2.0, which adjusts how much input gain there is. Background noise can accumulate if the gain is too high.
-* `burn` (default 0.0) is from -1.0 to 1.0 which determines how easily the vidicon tubes are 'burned' - i.e. after being exposed to high brightness, how much that bright spot persists. A value of 0.05 will give a bright spot after exposure, mimicking a good tube. A value of -0.05 will show a dark spot, looking like a worn tube.
+* `burn` (default 0.0) is from -1.0 to 1.0 which determines how easily the vidicon tube is 'burned' - i.e. How sensitive the tube is to overexposure. A value of 0.5 will give a bright spot after exposure, mimicking a good tube. A value of -0.5 will show a dark spot, looking like a worn tube.
+* `tail` (default 0.95) is from 0 to 1.0, and determines the length of the comet tails created from the 'burn' setting. That is, how quickly the burned image fades out.
 
 Additionally, each option can be adjusted per channel:
 
 * `fade_r`, `fade_g` and `fade_b` for red, green and blue.
 * `gain_r`, `gain_g` and `gain_b`.
 * `burn_r`, `burn_g` and `burn_b`.
+* `tail_r`, `tail_g` and `tail_b`.
+
 
 ## Examples
 
